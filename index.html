@@ -270,15 +270,19 @@
             const password = document.getElementById("login-password").value;
 
             try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                const doc = await db.collection("usuarios").doc(user.uid).get();
+                if (!user.emailVerified) {
+                    alert("Tu correo no está verificado. Revisá tu bandeja de entrada.");
+                    await user.sendEmailVerification(); // (re)envía si quiere
+                    return;
+                }
 
+                const doc = await firebase.firestore().collection("usuarios").doc(user.uid).get();
                 if (doc.exists) {
                     const data = doc.data();
                     alert(`Hola ${data.nombre} ${data.apellido}`);
-                    // window.location.href = "dashboard.html";
                 } else {
                     alert("No se encontraron los datos del usuario.");
                 }
@@ -291,12 +295,12 @@
             const nombre = document.getElementById("reg-nombre").value.trim();
             const apellido = document.getElementById("reg-apellido").value.trim();
             const email = document.getElementById("reg-email").value.trim();
-            const cuit = document.getElementById("reg-cuit").value.trim();
             const password = document.getElementById("reg-password").value;
             const repeat = document.getElementById("reg-password-repeat").value;
+            const cuit = document.getElementById("reg-cuit").value.trim();
 
-            if (!nombre || !apellido || !email || !cuit || !password || !repeat) {
-                alert("Por favor completá todos los campos.");
+            if (!nombre || !apellido || !email || !password || !repeat || !cuit) {
+                alert("Completá todos los campos.");
                 return;
             }
 
@@ -305,9 +309,8 @@
                 return;
             }
 
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert("Por favor ingresá un correo electrónico válido.");
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                alert("Ingresá un email válido.");
                 return;
             }
 
@@ -317,21 +320,25 @@
             }
 
             try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                await db.collection("usuarios").doc(user.uid).set({
-                    nombre: nombre,
-                    apellido: apellido,
-                    email: email,
-                    cuit: cuit,
-                    creado: firebase.firestore.FieldValue.serverTimestamp()
+                // Guardar datos en Firestore
+                await firebase.firestore().collection("usuarios").doc(user.uid).set({
+                    nombre,
+                    apellido,
+                    email,
+                    cuit
                 });
 
-                alert("Cuenta creada correctamente.");
-                mostrarFormulario('form-login');
+                // Enviar email de verificación
+                await user.sendEmailVerification();
+
+                alert("Cuenta creada. Te enviamos un correo para verificar tu dirección.");
+                mostrarFormulario("form-login");
+
             } catch (error) {
-                alert("Error al registrarse: " + error.message);
+                alert("Error: " + error.message);
             }
         }
 
