@@ -299,6 +299,7 @@
             const repeat = document.getElementById("reg-password-repeat").value;
             const cuit = document.getElementById("reg-cuit").value.trim();
 
+            // Validaciones
             if (!nombre || !apellido || !email || !password || !repeat || !cuit) {
                 alert("Completá todos los campos.");
                 return;
@@ -310,7 +311,7 @@
             }
 
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                alert("Ingresá un email válido.");
+                alert("Ingresá un correo electrónico válido.");
                 return;
             }
 
@@ -320,10 +321,11 @@
             }
 
             try {
+                // Crear usuario
                 const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Guardar datos en Firestore
+                // Guardar en Firestore
                 await firebase.firestore().collection("usuarios").doc(user.uid).set({
                     nombre,
                     apellido,
@@ -334,11 +336,14 @@
                 // Enviar email de verificación
                 await user.sendEmailVerification();
 
-                alert("Cuenta creada. Te enviamos un correo para verificar tu dirección.");
+                // Mensaje claro
+                alert("Cuenta creada. Se envió un correo a tu dirección para verificar tu cuenta. Por favor, revisá tu bandeja de entrada o correo no deseado.");
+
+                // Redirigir al login
                 mostrarFormulario("form-login");
 
             } catch (error) {
-                alert("Error: " + error.message);
+                alert("Error al registrarse: " + error.message);
             }
         }
 
@@ -375,47 +380,6 @@
         // Solo números para CUIT (se puede usar como oninput="soloNumeros(this)")
         function soloNumeros(input) {
             input.value = input.value.replace(/\D/g, '');
-        }
-
-        async function registrarUsuario() {
-            const nombre = document.getElementById('reg-nombre').value.trim();
-            const apellido = document.getElementById('reg-apellido').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            const repeat = document.getElementById('reg-password-repeat').value;
-            const cuit = document.getElementById('reg-cuit').value.trim();
-
-            if (!nombre || !apellido || !email || !password || !repeat || !cuit) {
-                alert("Completá todos los campos.");
-                return;
-            }
-
-            if (!/^\d{11}$/.test(cuit)) {
-                alert("El CUIT debe contener exactamente 11 números.");
-                return;
-            }
-
-            if (password !== repeat) {
-                alert("Las contraseñas no coinciden.");
-                return;
-            }
-
-            try {
-                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                await firebase.firestore().collection("usuarios").doc(user.uid).set({
-                    nombre,
-                    apellido,
-                    email,
-                    cuit
-                });
-
-                alert("Cuenta creada correctamente.");
-                location.reload();
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
         }
     </script>
 </body>
